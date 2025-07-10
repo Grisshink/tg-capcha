@@ -16,7 +16,7 @@ font = ImageFont.truetype('./LiberationSerif-Italic.ttf', size=150)
 
 load_dotenv()
 
-unsolved_capchas = {}
+unsolved_captchas = {}
 rng = numpy.random.default_rng()
 
 logging.basicConfig(
@@ -29,7 +29,7 @@ letters = 'qwertyuiopasdfghjklzxcvbnm1234567890'
 def gen_text() -> str:
     return ''.join(choice(letters) for _ in range(6))
 
-def new_capcha_image(text: str) -> bytes:
+def new_captcha_image(text: str) -> bytes:
     bg_color = f'hsl({randint(0, 360)}, {randint(0, 100)}%, 80%)'
     fg_color = f'hsl({randint(0, 360)}, {randint(0, 100)}%, 20%)'
     if randint(1, 2) == 1:
@@ -73,14 +73,14 @@ def new_capcha_image(text: str) -> bytes:
 
     return img_io.getvalue()
 
-def gen_capcha(user_id: int) -> bytes:
-    unsolved_capchas[user_id] = gen_text()
-    return new_capcha_image(unsolved_capchas[user_id])
+def gen_captcha(user_id: int) -> bytes:
+    unsolved_captchas[user_id] = gen_text()
+    return new_captcha_image(unsolved_captchas[user_id])
 
-async def capcha(update: Update, context: ContextTypes.DEFAULT_TYPE): 
+async def captcha(update: Update, context: ContextTypes.DEFAULT_TYPE): 
     if update.message is None: return
     await update.message.reply_photo(
-        gen_capcha(update.message.from_user.id), 
+        gen_captcha(update.message.from_user.id), 
         caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -90,13 +90,13 @@ async def user_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user is None: return
 
     user_id = update.message.from_user.id
-    if user_id not in unsolved_capchas: return
+    if user_id not in unsolved_captchas: return
 
-    if update.message.text != unsolved_capchas[user_id]:
+    if update.message.text != unsolved_captchas[user_id]:
         await update.message.reply_text('НЕПРАВИЛЬНА!1!11!')
     else:
         await update.message.reply_text('Всё верно, хорошего дня ;)')
-        del unsolved_capchas[user_id]
+        del unsolved_captchas[user_id]
 
     try:
         await update.message.delete()
@@ -108,7 +108,7 @@ async def user_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user is None: return
 
     user_id = update.message.from_user.id
-    if user_id not in unsolved_capchas: return
+    if user_id not in unsolved_captchas: return
 
     await update.message.reply_text('ГДЕ КАПЧА?!1!11!')
 
@@ -121,7 +121,7 @@ async def new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None: return
     print('new member', update.message.new_chat_members[0].id)
     await update.message.reply_photo(
-        gen_capcha(update.message.new_chat_members[0].id), 
+        gen_captcha(update.message.new_chat_members[0].id), 
         caption=f'Не будь винляторным, {update.message.new_chat_members[0].mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     application = ApplicationBuilder().token(os.getenv('BOT_TOKEN', '')).build()
     
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('capcha', capcha))
+    application.add_handler(CommandHandler('captcha', captcha))
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_member))
     application.add_handler(MessageHandler(filters.TEXT & filters.USER, user_confirm))
     application.add_handler(MessageHandler(filters.USER, user_msg))
