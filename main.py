@@ -24,7 +24,7 @@ logging.basicConfig(
     level=logging.WARN
 )
 
-letters = 'qwertyuipasdghjkzxcvbnm123456789'
+letters = 'qwertyuipasdhjkzxcvbnm12345678'
 
 def gen_text() -> str:
     return ''.join(choice(letters) for _ in range(6))
