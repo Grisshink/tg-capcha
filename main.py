@@ -12,7 +12,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
 from telegram.constants import ParseMode
 from dotenv import load_dotenv
 
-font = ImageFont.truetype('./LiberationSerif-Italic.ttf', size=150)
+font = ImageFont.truetype('./IosevkaCustom-Italic.ttf', size=150)
 
 load_dotenv()
 
