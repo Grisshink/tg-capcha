@@ -92,7 +92,7 @@ async def user_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     if user_id not in unsolved_captchas: return
 
-    if update.message.text != unsolved_captchas[user_id]:
+    if update.message.text.lower() != unsolved_captchas[user_id]:
         await update.message.reply_text('НЕПРАВИЛЬНА!1!11!')
     else:
         await update.message.reply_text('Всё верно, хорошего дня ;)')
