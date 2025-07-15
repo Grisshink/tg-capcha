@@ -9,7 +9,7 @@ from random import randint, random, choice
 
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
-from telegram.constants import ParseMode
+from telegram.constants import ChatMemberStatus, ChatType, ParseMode
 from dotenv import load_dotenv
 
 font = ImageFont.truetype('./LiberationSerif-Italic.ttf', size=150)
@@ -79,9 +79,21 @@ def gen_captcha(user_id: int) -> bytes:
 
 async def captcha(update: Update, context: ContextTypes.DEFAULT_TYPE): 
     if update.message is None: return
-    await update.message.reply_photo(
-        gen_captcha(update.message.from_user.id), 
-        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
+
+    reply_to = update.message
+
+    chatMember = await update.effective_chat.get_member(update.effective_user.id)
+
+    if (update.effective_chat.type == ChatType.PRIVATE or
+        chatMember.status == ChatMemberStatus.ADMINISTRATOR or
+        chatMember.status == ChatMemberStatus.OWNER) and \
+        update.message.reply_to_message is not None and \
+        update.message.reply_to_message.from_user is not None:
+        reply_to = update.message.reply_to_message
+
+    await reply_to.reply_photo(
+        gen_captcha(reply_to.from_user.id), 
+        caption=f'Не будь винляторным, {reply_to.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
