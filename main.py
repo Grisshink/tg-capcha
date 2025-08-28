@@ -91,6 +91,12 @@ async def captcha(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update.message.reply_to_message.from_user is not None:
         reply_to = update.message.reply_to_message
 
+    reply_member = await update.effective_chat.get_member(reply_to.from_user.id)
+    if (reply_member.status == ChatMemberStatus.ADMINISTRATOR or
+        reply_member.status == ChatMemberStatus.OWNER):
+        await update.message.reply_text('По своим не стреляем ;)')
+        return
+
     await reply_to.reply_photo(
         gen_captcha(reply_to.from_user.id), 
         caption=f'Не будь винляторным, {reply_to.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
