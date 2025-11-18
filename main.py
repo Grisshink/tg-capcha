@@ -9,7 +9,7 @@ from random import randint, random, choice
 
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
-from telegram.constants import ChatMemberStatus, ChatType, ParseMode
+from telegram.constants import ChatMemberStatus, ChatType, MessageEntityType, ParseMode
 from dotenv import load_dotenv
 
 font = ImageFont.truetype('./LiberationSerif-Italic.ttf', size=150)
@@ -93,7 +93,7 @@ async def captcha(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply_member = await update.effective_chat.get_member(reply_to.from_user.id)
     if (reply_member.status == ChatMemberStatus.ADMINISTRATOR or
-        reply_member.status == ChatMemberStatus.OWNER):
+        reply_member.status == ChatMemberStatus.OWNER) and reply_to.from_user.id not in unsolved_captchas:
         await update.message.reply_text('По своим не стреляем ;)')
         return
 
@@ -108,7 +108,42 @@ async def user_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user is None: return
 
     user_id = update.message.from_user.id
-    if user_id not in unsolved_captchas: return
+    if user_id not in unsolved_captchas:
+        for entity in update.message.entities:
+            if entity.type == MessageEntityType.MENTION:
+                if update.message.parse_entity(entity).lower() == '@grisshink':
+                    await update.message.reply_photo(
+                        gen_captcha(update.message.from_user.id), 
+                        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
+                        parse_mode=ParseMode.MARKDOWN_V2,
+                    )
+                    return
+            elif entity.type == MessageEntityType.TEXT_MENTION:
+                if entity.user.username.lower() == 'grisshink':
+                    await update.message.reply_photo(
+                        gen_captcha(update.message.from_user.id), 
+                        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
+                        parse_mode=ParseMode.MARKDOWN_V2,
+                    )
+                    return
+        for entity in update.message.caption_entities:
+            if entity.type == MessageEntityType.MENTION:
+                if update.message.parse_caption_entity(entity).lower() == '@grisshink':
+                    await update.message.reply_photo(
+                        gen_captcha(update.message.from_user.id), 
+                        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
+                        parse_mode=ParseMode.MARKDOWN_V2,
+                    )
+                    return
+            elif entity.type == MessageEntityType.TEXT_MENTION:
+                if entity.user.username.lower() == 'grisshink':
+                    await update.message.reply_photo(
+                        gen_captcha(update.message.from_user.id), 
+                        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
+                        parse_mode=ParseMode.MARKDOWN_V2,
+                    )
+                    return
+        return
 
     if update.message.text.lower() != unsolved_captchas[user_id]:
         await update.message.reply_text('НЕПРАВИЛЬНА!1!11!')
@@ -154,7 +189,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('captcha', captcha))
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_member))
-    application.add_handler(MessageHandler(filters.TEXT & filters.USER, user_confirm))
+    application.add_handler(MessageHandler((filters.TEXT | filters.CAPTION) & filters.USER, user_confirm))
     application.add_handler(MessageHandler(filters.USER, user_msg))
     
     application.run_polling()
