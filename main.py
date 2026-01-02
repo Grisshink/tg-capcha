@@ -26,6 +26,11 @@ logging.basicConfig(
 
 letters = 'qwertyuipasdhjkzxcvbnm12345678'
 
+captcha_usernames = ['grisshink', 'ygehr']
+captcha_mentions = [f'@{user}' for user in captcha_usernames]
+
+ping_photo_id = 'AgACAgIAAxkBAAICCWk_B_IT5OahJdFHlXDIE1kO3K5BAALJEmsbJX_5SVmTvyE2qDQLAQADAgADeQADNgQ'
+
 def gen_text() -> str:
     return ''.join(choice(letters) for _ in range(6))
 
@@ -77,6 +82,30 @@ def gen_captcha(user_id: int) -> bytes:
     unsolved_captchas[user_id] = gen_text()
     return new_captcha_image(unsolved_captchas[user_id])
 
+async def uncaptcha(update: Update, context: ContextTypes.DEFAULT_TYPE): 
+    if update.message is None: return
+
+    chatMember = await update.effective_chat.get_member(update.effective_user.id)
+
+    if (update.effective_chat.type != ChatType.PRIVATE and
+        chatMember.status != ChatMemberStatus.ADMINISTRATOR and
+        chatMember.status != ChatMemberStatus.OWNER):
+        await update.message.reply_text('Ты не адмене, беги')
+        return
+
+    if update.message.reply_to_message is None or update.message.reply_to_message.from_user is None:
+        await update.message.reply_text('Нужно ответить пользователю этой командой, чтобы разблокировать доступ')
+        return
+
+    reply_to = update.message.reply_to_message
+
+    if reply_to.from_user.id not in unsolved_captchas:
+        await update.message.reply_text('Пользователь уже прошёл капчу')
+        return
+
+    await reply_to.reply_markdown_v2(f'{reply_to.from_user.mention_markdown_v2()} ты был помилован великим адмене {update.message.from_user.mention_markdown_v2()}')
+    del unsolved_captchas[reply_to.from_user.id]
+
 async def captcha(update: Update, context: ContextTypes.DEFAULT_TYPE): 
     if update.message is None: return
 
@@ -103,6 +132,18 @@ async def captcha(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
+async def send_captcha(message):
+    await message.reply_photo(
+        gen_captcha(message.from_user.id), 
+        caption=f'Не будь винляторным, {message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
+
+    if message.from_user.id == 6074263390:
+        await message.reply_photo(ping_photo_id)
+        await message.delete()
+
+
 async def user_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None: return
     if update.message.from_user is None: return
@@ -111,41 +152,27 @@ async def user_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in unsolved_captchas:
         for entity in update.message.entities:
             if entity.type == MessageEntityType.MENTION:
-                if update.message.parse_entity(entity).lower() == '@grisshink':
-                    await update.message.reply_photo(
-                        gen_captcha(update.message.from_user.id), 
-                        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
-                        parse_mode=ParseMode.MARKDOWN_V2,
-                    )
+                if update.message.parse_entity(entity).lower() in captcha_mentions:
+                    await send_captcha(update.message)
                     return
             elif entity.type == MessageEntityType.TEXT_MENTION:
-                if entity.user.username.lower() == 'grisshink':
-                    await update.message.reply_photo(
-                        gen_captcha(update.message.from_user.id), 
-                        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
-                        parse_mode=ParseMode.MARKDOWN_V2,
-                    )
+                if entity.user.username.lower() in captcha_usernames:
+                    await send_captcha(update.message)
                     return
         for entity in update.message.caption_entities:
             if entity.type == MessageEntityType.MENTION:
-                if update.message.parse_caption_entity(entity).lower() == '@grisshink':
-                    await update.message.reply_photo(
-                        gen_captcha(update.message.from_user.id), 
-                        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
-                        parse_mode=ParseMode.MARKDOWN_V2,
-                    )
+                if update.message.parse_caption_entity(entity).lower() in captcha_mentions:
+                    await send_captcha(update.message)
                     return
             elif entity.type == MessageEntityType.TEXT_MENTION:
-                if entity.user.username.lower() == 'grisshink':
-                    await update.message.reply_photo(
-                        gen_captcha(update.message.from_user.id), 
-                        caption=f'Не будь винляторным, {update.message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
-                        parse_mode=ParseMode.MARKDOWN_V2,
-                    )
+                if entity.user.username.lower() in captcha_usernames:
+                    await send_captcha(update.message)
                     return
         return
 
-    if update.message.text.lower() != unsolved_captchas[user_id]:
+    if update.message.text is None:
+        await update.message.reply_text('ГДЕ КАПЧА?!1!11!')
+    elif update.message.text.lower() != unsolved_captchas[user_id]:
         await update.message.reply_text('НЕПРАВИЛЬНА!1!11!')
     else:
         await update.message.reply_text('Всё верно, хорошего дня ;)')
@@ -188,6 +215,7 @@ if __name__ == '__main__':
     
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('captcha', captcha))
+    application.add_handler(CommandHandler('uncaptcha', uncaptcha))
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_member))
     application.add_handler(MessageHandler((filters.TEXT | filters.CAPTION) & filters.USER, user_confirm))
     application.add_handler(MessageHandler(filters.USER, user_msg))
