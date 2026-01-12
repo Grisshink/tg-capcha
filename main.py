@@ -208,7 +208,7 @@ async def new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None: return
-    await update.message.reply_text('Старт')
+    await update.message.reply_text('/captcha - Казнить.\n/uncaptcha - Помиловать.')
 
 if __name__ == '__main__':
     application = ApplicationBuilder().token(os.getenv('BOT_TOKEN', '')).build()
