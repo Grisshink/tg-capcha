@@ -10,6 +10,7 @@ from random import randint, random, choice
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 from telegram.constants import ChatMemberStatus, ChatType, MessageEntityType, ParseMode
+from telegram.error import TimedOut
 from dotenv import load_dotenv
 
 font = ImageFont.truetype('./LiberationSerif-Italic.ttf', size=150)
@@ -125,20 +126,24 @@ async def captcha(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_member.status == ChatMemberStatus.OWNER) and reply_to.from_user.id not in unsolved_captchas:
         await update.message.reply_text('По своим не стреляем ;)')
         return
-
-    await reply_to.reply_photo(
-        gen_captcha(reply_to.from_user.id), 
-        caption=f'Не будь винляторным, {reply_to.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
+    
+    await send_captcha(reply_to)
 
 async def send_captcha(message):
-    await message.reply_photo(
-        gen_captcha(message.from_user.id), 
-        caption=f'Не будь винляторным, {message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
-
+    i = 0
+    img = gen_captcha(message.from_user.id)
+    while True:
+        try:
+            await message.reply_photo(
+                img, 
+                caption=f'Не будь винляторным, {message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
+                parse_mode=ParseMode.MARKDOWN_V2,
+            )
+            break
+        except TimedOut:
+            i += 1
+            print(f"!!!ТРЕВОГА!!! Таймаут номер {i}")
+    
     if message.from_user.id == 6074263390:
         await message.reply_photo(ping_photo_id)
         await message.delete()
