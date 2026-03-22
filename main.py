@@ -132,17 +132,11 @@ async def captcha(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_captcha(message):
     i = 0
     img = gen_captcha(message.from_user.id)
-    while True:
-        try:
-            await message.reply_photo(
-                img, 
-                caption=f'Не будь винляторным, {message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
-                parse_mode=ParseMode.MARKDOWN_V2,
-            )
-            break
-        except TimedOut:
-            i += 1
-            print(f"!!!ТРЕВОГА!!! Таймаут номер {i}")
+    await message.reply_photo(
+        img, 
+        caption=f'Не будь винляторным, {message.from_user.mention_markdown_v2()}, подтверди капчу как настоящий мусороид:',
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
     
     if message.from_user.id == 6074263390:
         await message.reply_photo(ping_photo_id)
